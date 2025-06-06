@@ -23,8 +23,7 @@ const TransactionScreen = () => {
     toAccount: accounts && accounts.length > 1 ? accounts[1].id : '',
     category: 'transfer',
   });
-// thanks for the help
-
+// ther are many new changes in the code.
   // Menu state for dropdowns
   const [fromMenuVisible, setFromMenuVisible] = useState(false);
   const [toMenuVisible, setToMenuVisible] = useState(false);
