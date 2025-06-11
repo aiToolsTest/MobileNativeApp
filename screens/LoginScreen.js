@@ -50,7 +50,7 @@ const LoginScreen = ({ navigation }) => {
           style={{ width: 90, height: 90, alignSelf: 'center', marginBottom: 16 }}
           resizeMode="contain"
         />
-        <Text style={styles.title}>Welcome to Lorington</Text>
+        <Text style={styles.title}>Welcome to Laurentian</Text>
         <Text style={styles.subtitle}>Sign in to continue</Text>
       </View>
       
