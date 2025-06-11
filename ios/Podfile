@@ -58,5 +58,18 @@ target 'MobileAppAndroid' do
       :mac_catalyst_enabled => false
     )
     __apply_Xcode_12_5_M1_post_install_workaround(installer)
+    
+    # Copy all font files from react-native-vector-icons to the app target
+    installer.pods_project.targets.each do |target|
+      if target.name == 'RNVectorIcons'
+        phase = target.shell_script_build_phases.find { |bp| bp.name == '[CP-User] [RNVectorIcons] Copy Fonts' }
+        if phase
+          phase.shell_script = <<-EOS
+            set -e
+            find "${PODS_ROOT}/../../node_modules/react-native-vector-icons/Fonts" -type f -name '*.ttf' -exec cp {} "${CONFIGURATION_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/" \;
+          EOS
+        end
+      end
+    end
   end
 end
