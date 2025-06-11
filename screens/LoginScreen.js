@@ -7,8 +7,8 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import { LIGHT_YELLOW, PRIMARY_BLUE } from '../src/constants/colors';
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('kasi.muppina@example.com');
-  const [password, setPassword] = useState('Test123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
