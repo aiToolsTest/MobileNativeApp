@@ -127,5 +127,5 @@ dependencies {
 
 apply from: file("../../node_modules/@react-native-community/cli-platform-android/native_modules.gradle"); applyNativeModulesAppBuildGradle(project)
 
-// Ensure vector icon fonts are bundled
-apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+// Commenting out to avoid duplicate font resources
+// apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
