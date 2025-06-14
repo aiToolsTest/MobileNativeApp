@@ -16,7 +16,7 @@ import { PRIMARY_BLUE } from '../src/constants/colors';
 
 const ProfileScreen = () => {
   const navigation = useNavigation();
-  const { userId, fullName, accounts, clearUser } = useUser();
+  const { userId, fullName, clearUser } = useUser();
 
   // Logout handler for top-right button
   const handleLogout = () => {
@@ -59,10 +59,13 @@ const ProfileScreen = () => {
     <ScrollView style={styles.container}>
       {/* Header with user info */}
       <View style={styles.header}>
-        {/* Top-right logout icon */}
+        {/* Top-right logout icon - updated to a better icon */}
         <View style={{ position: 'absolute', top: 16, right: 16, zIndex: 10 }}>
-          <TouchableOpacity onPress={handleLogout} style={{ padding: 8 }}>
-            <MaterialCommunityIcons name="logout-variant" size={28} color="#e63946" />
+          <TouchableOpacity 
+            onPress={handleLogout} 
+            style={styles.logoutIconButton}
+          >
+            <MaterialIcons name="exit-to-app" size={28} color="#e63946" />
           </TouchableOpacity>
         </View>
         <View style={styles.avatarContainer}>
@@ -71,29 +74,10 @@ const ProfileScreen = () => {
           </Text>
         </View>
         <Text style={styles.userName}>{fullName || 'User'}</Text>
-        <Text style={styles.userEmail}>UserID: {userId}</Text>
         <Text style={styles.userSince}>Member since {new Date().getFullYear()}</Text>
       </View>
 
-      {/* Accounts section */}
-      <View style={styles.accountsSection}>
-        <Text style={styles.sectionTitle}>My Accounts</Text>
-        {accounts && accounts.length > 0 ? (
-          accounts.map(account => (
-            <View key={account.id} style={styles.accountCard}>
-              <View style={styles.accountHeader}>
-                <Text style={styles.accountName}>{account.accountType}</Text>
-                <Text style={styles.accountNumber}>{account.id}</Text>
-              </View>
-              <Text style={styles.accountBalance}>
-                {account.currency} {account.balance.toFixed(2)}
-              </Text>
-            </View>
-          ))
-        ) : (
-          <Text style={{ color: '#adb5bd', marginLeft: 8 }}>No accounts found.</Text>
-        )}
-      </View>
+
 
       {/* Menu section */}
       <View style={styles.menuSection}>
@@ -105,8 +89,8 @@ const ProfileScreen = () => {
             onPress={() => item.onPress ? item.onPress() : (item.screen ? navigation.navigate(item.screen) : null)}
           >
             <View style={styles.menuItemLeft}>
-  <Text style={styles.menuItemText}>{item.title}</Text>
-</View>
+              <Text style={styles.menuItemText}>{item.title}</Text>
+            </View>
             
           </TouchableOpacity>
         ))}
@@ -175,51 +159,22 @@ const styles = StyleSheet.create({
     color: PRIMARY_BLUE,
     marginBottom: 4,
   },
-  userEmail: {
-    fontSize: 16,
-    color: '#a1a1a1',
-    marginBottom: 4,
-  },
+
   userSince: {
     fontSize: 14,
     color: '#adb5bd',
     marginBottom: 16,
   },
-  statsContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
-    borderRadius: 16,
+  logoutIconButton: {
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+  },
+  menuSection: {
     padding: 16,
-    width: '100%',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginTop: 8,
   },
-  statItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: '#222',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#a1a1a1',
-  },
-  statDivider: {
-    width: 1,
-    height: '100%',
-    backgroundColor: '#e9ecef',
-  },
-  section: {
-    marginBottom: 24,
-    paddingHorizontal: 20,
-  },
+
   sectionTitle: {
     fontSize: 16,
     fontWeight: '600',
@@ -227,81 +182,26 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     marginLeft: 4,
   },
-  accountCard: {
-    marginBottom: 12,
-    padding: 16,
-    borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  accountHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  accountIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(67, 97, 238, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  accountName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: PRIMARY_BLUE,
-    marginRight: 8,
-  },
-  accountNumber: {
-    fontSize: 14,
-    color: '#a1a1a1',
-  },
-  accountBalance: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: PRIMARY_BLUE,
-  },
-  addAccountButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#e9ecef',
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    marginTop: 8,
-  },
-  addAccountText: {
-    marginLeft: 8,
-    color: PRIMARY_BLUE,
-    fontWeight: '600',
-  },
-  menuCard: {
-    borderRadius: 16,
-    overflow: 'hidden',
-  },
+
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
+    backgroundColor: '#FFFFFF',
+    marginBottom: 8,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   menuItemLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  menuItemIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(67, 97, 238, 0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 16,
-  },
+
   menuItemText: {
     fontSize: 16,
     color: PRIMARY_BLUE,
@@ -311,23 +211,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f3f5',
     marginLeft: 72,
   },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    marginHorizontal: 20,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderColor: '#ffe3e3',
-  },
-  logoutText: {
-    marginLeft: 8,
-    color: '#e63946',
-    fontWeight: '600',
-  },
+
   footer: {
     alignItems: 'center',
     marginBottom: 24,

@@ -1,33 +1,231 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Share } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Linking, Share, FlatList } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import LinearGradient from 'react-native-linear-gradient';
 import { format, parseISO } from 'date-fns';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useTransactions } from '../context/TransactionContext';
+import { LIGHT_YELLOW, PRIMARY_BLUE } from '../src/constants/colors';
+
+// Helper functions moved outside the component so they're accessible throughout the file
+// Format date helper function
+const formatDate = (dateString) => {
+  const date = parseISO(dateString);
+  return format(date, 'EEEE, MMMM d, yyyy \\at h:mm a');
+};
+
+// Get category icon helper function
+const getCategoryIcon = (category, type) => {
+  switch (category) {
+    case 'food':
+      return 'restaurant';
+    case 'bills':
+      return 'receipt';
+    case 'shopping':
+      return 'shopping-bag';
+    case 'entertainment':
+      return 'movie';
+    case 'subscription':
+      return 'subscriptions';
+    case 'income':
+      return 'account-balance-wallet';
+    case 'transfer':
+    default:
+      return type === 'sent' ? 'arrow-upward' : 'arrow-downward';
+  }
+};
 
 const TransactionDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
-  const { transaction: routeTransaction } = route.params || {};
+  const { transaction: routeTransaction, accountId, accountName, accountBalance, accountCurrency } = route.params || {};
+  const { transactions } = useTransactions();
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
   
-  // Default transaction data in case none is passed
-  const defaultTransaction = {
-    id: 't1',
-    type: 'sent',
-    amount: 125.50,
-    fromAccount: 'Savings',
-    toAccount: 'Checking',
-    description: 'Dinner at Italian Restaurant',
-    date: '2023-06-15T19:30:00',
-    status: 'completed',
-    category: 'food',
-    reference: 'TXN202306151930',
-    fee: 0.00,
-    account: 'Main Account (••• 1234)',
-    location: 'Pasta Palace, New York, NY',
-  };
+  // State for loading and error handling
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Fetch transactions for the specific account
+  useEffect(() => {
+    if (!accountId) return;
+    
+    const fetchAccountTransactions = async () => {
+      console.log(`[AccountDetail] Fetching transactions for account: ${accountId}`);
+      setIsLoading(true);
+      setError(null);
+      
+      try {
+        // API endpoint for account-specific transactions
+        const response = await fetch(`https://bank-poc-api-func.azurewebsites.net/api/transactions/${accountId}`);
+        console.log(`[AccountDetail] API response status: ${response.status}`);
+        
+        if (!response.ok) {
+          throw new Error(`Failed to fetch transactions. Status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`[AccountDetail] Received ${data.length} transactions`);
+        
+        // Process and set the transactions
+        setFilteredTransactions(data);
+      } catch (err) {
+        console.error('[AccountDetail] Error fetching transactions:', err);
+        setError('Failed to load transactions for this account');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchAccountTransactions();
+  }, [accountId]);
   
-  const transaction = routeTransaction || defaultTransaction;
+  // If we're showing account transactions, render the account transactions UI
+  if (accountId) {
+    return (
+      <View style={styles.container}>
+        <LinearGradient
+          colors={[PRIMARY_BLUE, '#3a0ca3']}
+          style={styles.headerGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        >
+          <View style={styles.header}>
+            <View style={{width: 24}} />
+            <Text style={styles.headerTitle}>{accountName || 'Account'} Transactions</Text>
+          </View>
+          
+          <View style={styles.accountSummary}>
+            <Text style={styles.accountLabel}>Available Balance</Text>
+            <Text style={styles.accountBalance}>
+              {accountCurrency || '$'} {typeof accountBalance === 'number' ? accountBalance.toFixed(2) : '0.00'}
+            </Text>
+          </View>
+        </LinearGradient>
+        
+        <View style={styles.content}>
+          {isLoading ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.loadingText}>Loading transactions...</Text>
+            </View>
+          ) : error ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity 
+                style={styles.refreshButton}
+                onPress={() => {
+                  if (accountId) {
+                    setIsLoading(true);
+                    setError(null);
+                    fetch(`https://bank-poc-api-func.azurewebsites.net/api/transactions/${accountId}`)
+                      .then(response => response.json())
+                      .then(data => {
+                        setFilteredTransactions(data);
+                        setIsLoading(false);
+                      })
+                      .catch(err => {
+                        console.error('[AccountDetail] Error retrying:', err);
+                        setError('Failed to load transactions');
+                        setIsLoading(false);
+                      });
+                  }
+                }}
+              >
+                <Text style={styles.refreshButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          ) : filteredTransactions.length > 0 ? (
+            <FlatList
+              data={filteredTransactions}
+              keyExtractor={item => item.id}
+              contentContainerStyle={styles.transactionsList}
+              renderItem={({ item }) => {
+                // Determine if transaction is sent or received
+                const isSent = item.sourceAccountId === accountId;
+                
+                return (
+                  <TouchableOpacity 
+                    style={styles.transactionItem}
+                    onPress={() => navigation.navigate('TransactionDetail', { transaction: item })}
+                  >
+                    <View style={[
+                      styles.transactionIcon, 
+                      { backgroundColor: isSent ? '#ffebee' : '#e8f5e9' }
+                    ]}>
+                      <Icon 
+                        name={getCategoryIcon(item.category, isSent ? 'sent' : 'received')}
+                        size={20} 
+                        color={isSent ? '#e63946' : '#2ecc71'} 
+                      />
+                    </View>
+                    
+                    <View style={styles.transactionDetails}>
+                      <Text style={styles.transactionTitle} numberOfLines={1}>
+                        {isSent ? 
+                          `To: ${item.destinationAccountId}` : 
+                          `From: ${item.sourceAccountId}`}
+                      </Text>
+                      <Text style={styles.transactionNote} numberOfLines={1}>
+                        {item.note || 'Transfer'}
+                      </Text>
+                      <Text style={styles.transactionDate}>
+                        {item.date ? format(new Date(item.date), 'MMM d, yyyy - h:mm a') : 'Unknown date'}
+                      </Text>
+                    </View>
+                    <View style={styles.transactionAmount}>
+                      <Text 
+                        style={[
+                          styles.amountText,
+                          { color: isSent ? '#e63946' : '#2ecc71' }
+                        ]}
+                      >
+                        {isSent ? '-' : '+'}{item.amount} {item.currency}
+                      </Text>
+                      {item.status && (
+                        <Text 
+                          style={[
+                            styles.statusText,
+                            { color: isSent ? '#e63946' : '#2ecc71' }
+                          ]}
+                        >
+                          {item.status}
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              }}
+              ListEmptyComponent={
+                <View style={styles.emptyContainer}>
+                  <Text style={styles.emptyText}>No transactions found</Text>
+                </View>
+              }
+            />
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>No transactions found for this account</Text>
+              <TouchableOpacity 
+                style={styles.refreshButton}
+                onPress={() => navigation.goBack()}
+              >
+                <Text style={styles.refreshButtonText}>Go Back</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+    );
+  }
+  
+  // If no transaction was passed, we'll redirect back
+  if (!routeTransaction) {
+    React.useEffect(() => {
+      navigation.goBack();
+    }, []);
+    return null;
+  }
+  
+  const transaction = routeTransaction;
   
   const isSent = transaction.type === 'sent';
   const isPending = transaction.status === 'pending';
@@ -35,26 +233,6 @@ const TransactionDetailScreen = () => {
   const getStatusColor = () => {
     if (isPending) return '#f39c12';
     return isSent ? '#e63946' : '#2ecc71';
-  };
-  
-  const getCategoryIcon = () => {
-    switch (transaction.category) {
-      case 'food':
-        return 'restaurant';
-      case 'bills':
-        return 'receipt';
-      case 'shopping':
-        return 'shopping-bag';
-      case 'entertainment':
-        return 'movie';
-      case 'subscription':
-        return 'subscriptions';
-      case 'income':
-        return 'account-balance-wallet';
-      case 'transfer':
-      default:
-        return isSent ? 'arrow-upward' : 'arrow-downward';
-    }
   };
   
   const getCategoryName = () => {
@@ -78,15 +256,10 @@ const TransactionDetailScreen = () => {
     }
   };
   
-  const formatDate = (dateString) => {
-    const date = parseISO(dateString);
-    return format(date, 'EEEE, MMMM d, yyyy \at h:mm a');
-  };
-  
   const handleShare = async () => {
     try {
       await Share.share({
-        message: `Check out this ${isSent ? 'transfer' : 'transaction'} from ${transaction.fromAccount} to ${transaction.toAccount}: ${transaction.description} - $${transaction.amount.toFixed(2)}`,
+        message: `Check out this ${isSent ? 'transfer' : 'transaction'} from ${transaction.fromAccount || ''} to ${transaction.toAccount || ''}: ${transaction.description || ''} - $${(transaction.amount !== undefined && transaction.amount !== null) ? transaction.amount.toFixed(2) : '0.00'}`,
         title: 'Transaction Details',
       });
     } catch (error) {
@@ -114,12 +287,7 @@ const TransactionDetailScreen = () => {
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.header}>
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Icon name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
+          <View style={{width: 24}} />
           <Text style={styles.headerTitle}>Transaction Details</Text>
           <TouchableOpacity 
             style={styles.shareButton}
@@ -138,7 +306,7 @@ const TransactionDetailScreen = () => {
             />
           </View>
           <Text style={styles.amount}>
-            {isSent ? '-' : '+'}${transaction.amount.toFixed(2)}
+            {isSent ? '-' : '+'}${(transaction.amount !== undefined && transaction.amount !== null) ? transaction.amount.toFixed(2) : '0.00'}
           </Text>
           <Text style={[styles.status, { color: getStatusColor() }]}>
             {isPending ? 'Pending' : isSent ? 'Sent' : 'Received'}
@@ -212,7 +380,7 @@ const TransactionDetailScreen = () => {
               <View style={styles.infoItem}>
                 <Text style={styles.infoLabel}>Fee</Text>
                 <Text style={styles.infoValue}>
-                  ${transaction.fee.toFixed(2)}
+                  ${(transaction.fee !== undefined && transaction.fee !== null) ? transaction.fee.toFixed(2) : '0.00'}
                 </Text>
               </View>
             </>
@@ -563,6 +731,107 @@ const styles = StyleSheet.create({
   footerLink: {
     color: '#4361ee',
     fontWeight: '500',
+  },
+  accountSummary: {
+    alignItems: 'center',
+    paddingVertical: 16,
+  },
+  accountLabel: {
+    fontSize: 14,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: 4,
+  },
+  accountBalance: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#fff',
+  },
+  transactionsList: {
+    paddingTop: 8,
+  },
+  transactionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginBottom: 8,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  transactionIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  transactionDetails: {
+    flex: 1,
+  },
+  transactionTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#212529',
+  },
+  transactionDate: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginTop: 2,
+  },
+  transactionNote: {
+    fontSize: 14,
+    color: '#6c757d',
+    marginTop: 2,
+  },
+  loadingText: {
+    color: '#6c757d',
+    marginBottom: 16,
+  },
+  errorText: {
+    color: '#e63946',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  transactionAmount: {
+    alignItems: 'flex-end',
+  },
+  amountText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  statusText: {
+    fontSize: 12,
+    color: '#6c757d',
+    marginTop: 2,
+    textTransform: 'capitalize',
+  },
+  emptyContainer: {
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    height: 200,
+  },
+  emptyText: {
+    color: '#6c757d',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 16,
+  },
+  refreshButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    backgroundColor: PRIMARY_BLUE,
+    borderRadius: 4,
+  },
+  refreshButtonText: {
+    color: '#fff',
+    fontWeight: '600',
   },
 });
 

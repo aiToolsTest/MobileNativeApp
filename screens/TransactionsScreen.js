@@ -1,22 +1,42 @@
-
 // Group transactions by date
 const groupTransactionsByDate = (transactions) => {
+  console.log('---------- DIAGNOSTIC LOGS ----------');
+  console.log('[groupTransactionsByDate] START with transaction count:', transactions?.length);
+  console.log('[groupTransactionsByDate] First transaction sample:', transactions?.[0] ? JSON.stringify(transactions[0]) : 'none');
+  
+  if (!transactions || transactions.length === 0) {
+    console.log('[groupTransactionsByDate] No transactions to group - returning empty array');
+    return [];
+  }
+  
   const groups = {};
   
   transactions.forEach(transaction => {
-    const date = new Date(transaction.date);
-    let groupKey;
+    // Check if date exists and format correctly
+    if (!transaction.date) {
+      console.log('Transaction missing date:', transaction);
+      return;
+    }
     
-    if (isToday(date)) {
-      groupKey = 'Today';
-    } else if (isYesterday(date)) {
-      groupKey = 'Yesterday';
-    } else if (isThisWeek(date, { weekStartsOn: 1 })) {
-      groupKey = 'This Week';
-    } else if (isThisMonth(date)) {
-      groupKey = 'This Month';
-    } else {
-      groupKey = format(date, 'MMMM yyyy');
+    const date = new Date(transaction.date);
+    console.log('Processing date:', transaction.date, 'parsed as:', date);
+    
+    let groupKey;
+    try {
+      if (isToday(date)) {
+        groupKey = 'Today';
+      } else if (isYesterday(date)) {
+        groupKey = 'Yesterday';
+      } else if (isThisWeek(date, { weekStartsOn: 1 })) {
+        groupKey = 'This Week';
+      } else if (isThisMonth(date)) {
+        groupKey = 'This Month';
+      } else {
+        groupKey = format(date, 'MMMM yyyy');
+      }
+    } catch (error) {
+      console.error('Error processing date:', error);
+      groupKey = 'Unknown';
     }
     
     if (!groups[groupKey]) {
@@ -26,14 +46,25 @@ const groupTransactionsByDate = (transactions) => {
     groups[groupKey].push(transaction);
   });
   
-  return Object.entries(groups).map(([title, data]) => ({
+  const result = Object.entries(groups).map(([title, data]) => ({
     title,
-    data: data.sort((a, b) => new Date(b.date) - new Date(a.date)),
+    data: data.sort((a, b) => {
+      try {
+        return new Date(b.date) - new Date(a.date);
+      } catch (err) {
+        console.error('Error sorting dates:', err);
+        return 0;
+      }
+    }),
   }));
+  
+  console.log('Grouped transactions result:', JSON.stringify(result));
+  return result;
 };
 
 const TransactionItem = ({ transaction, onPress }) => {
-  const isSent = transaction.type === 'sent';
+  console.log('Rendering transaction item:', JSON.stringify(transaction));
+  const isSent = transaction.sourceAccountId === 'ACC001'; // Assuming ACC001 is the user's account
   const isPending = transaction.status === 'pending';
   
   const getCategoryIcon = () => {
@@ -74,7 +105,7 @@ const TransactionItem = ({ transaction, onPress }) => {
     >
       <View style={[styles.transactionIcon, { backgroundColor: getCategoryBackground() }]}>
         <MaterialIcons 
-          name="arrow-back" 
+          name={isSent ? "arrow-upward" : "arrow-downward"} 
           size={20} 
           color={getCategoryColor()} 
         />
@@ -82,10 +113,10 @@ const TransactionItem = ({ transaction, onPress }) => {
       
       <View style={styles.transactionDetails}>
         <Text style={styles.transactionTitle} numberOfLines={1}>
-          {transaction.fromAccount && transaction.toAccount ? `${transaction.fromAccount} → ${transaction.toAccount}` : 'Transfer'}
+          {`${transaction.sourceAccountId} → ${transaction.destinationAccountId}`}
         </Text>
         <Text style={styles.transactionCategory}>
-          {transaction.description}
+          {transaction.note || 'Transfer'}
           {isPending && ' • Pending'}
         </Text>
       </View>
@@ -97,27 +128,30 @@ const TransactionItem = ({ transaction, onPress }) => {
             { color: getCategoryColor() }
           ]}
         >
-          {isSent ? '-' : '+'}${transaction.amount.toFixed(2)}
+          {isSent ? '-' : '+'}${parseFloat(transaction.amount).toFixed(2)} {transaction.currency}
         </Text>
       </View>
     </TouchableOpacity>
   );
 };
 
-import React, { useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, Animated, FlatList, StyleSheet } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Animated, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import { useNavigation } from '@react-navigation/native';
 import { PRIMARY_BLUE, LIGHT_YELLOW } from '../src/constants/colors';
 import { useUser } from '../context/UserContext';
+import { format, isToday, isYesterday, isThisWeek, isThisMonth } from 'date-fns';
 
 const TransactionsScreen = () => {
   const navigation = useNavigation();
   const { accounts } = useUser();
   const [activeFilter, setActiveFilter] = useState('all');
-  // TODO: Replace with real data later
+  const [transactions, setTransactions] = useState([]);
   const [groupedTransactions, setGroupedTransactions] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerOpacity = scrollY.interpolate({
     inputRange: [0, 100],
@@ -130,27 +164,132 @@ const TransactionsScreen = () => {
     outputRange: [0, -50],
     extrapolate: 'clamp',
   });
+
+  // Fetch transactions from API
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  // Update grouped transactions when transactions change or filter changes
+  useEffect(() => {
+    console.log('[groupingEffect] Transactions state or filter changed');
+    console.log('[groupingEffect] -> Current transactions array length:', transactions.length);
+    console.log('[groupingEffect] -> Current filter:', activeFilter);
+    
+    // Always process transactions, even if empty (to handle cleared data)
+    let filteredTransactions = [...transactions];
+    
+    // Apply filters
+    switch (activeFilter) {
+      case 'sent':
+        console.log('[groupingEffect] Filtering for sent transactions');
+        filteredTransactions = transactions.filter(t => {
+          console.log('[groupingEffect] Checking transaction:', JSON.stringify(t));
+          const isSent = t.sourceAccountId === 'ACC001';
+          console.log('[groupingEffect] -> isSent:', isSent, 'sourceAccountId:', t.sourceAccountId);
+          return isSent;
+        });
+        console.log('[groupingEffect] Filtered sent count:', filteredTransactions.length);
+        break;
+      case 'received':
+        console.log('[groupingEffect] Filtering for received transactions');
+        filteredTransactions = transactions.filter(t => {
+          const isReceived = t.destinationAccountId === 'ACC001';
+          console.log('[groupingEffect] -> isReceived:', isReceived, 'destAccountId:', t.destinationAccountId);
+          return isReceived;
+        });
+        console.log('[groupingEffect] Filtered received count:', filteredTransactions.length);
+        break;
+      default:
+        console.log('[groupingEffect] No filtering applied (all transactions)');
+    }
+    
+    console.log('[groupingEffect] Calling groupTransactionsByDate with filtered transactions');
+    const grouped = groupTransactionsByDate(filteredTransactions);
+    console.log('[groupingEffect] Grouped result object count:', grouped?.length || 0);
+    console.log('[groupingEffect] Setting groupedTransactions state');
+    setGroupedTransactions(grouped);
+  }, [transactions, activeFilter]);
+
+  const fetchTransactions = async () => {
+    console.log('Fetching transactions from API');
+    setIsLoading(true);
+    setError(null);
+    try {
+      console.log('[fetchTransactions] Starting API fetch to endpoint: https://bank-poc-api-func.azurewebsites.net/api/transactions/ACC001');
+      const response = await fetch('https://bank-poc-api-func.azurewebsites.net/api/transactions/ACC001');
+      
+      console.log('[fetchTransactions] API Response status:', response.status);
+      if (!response.ok) {
+        console.log('[fetchTransactions] Response NOT OK');      
+        throw new Error(`API request failed with status ${response.status}`);
+      }
+      
+      const text = await response.text();
+      console.log('[fetchTransactions] Response text length:', text.length);
+      console.log('[fetchTransactions] Response first 100 chars:', text.substring(0, 100));
+      
+      try {
+        const data = JSON.parse(text);
+        console.log('[fetchTransactions] JSON parsed successfully. Type:', Array.isArray(data) ? 'Array' : typeof data);
+        console.log('[fetchTransactions] Data length:', Array.isArray(data) ? data.length : 'N/A');
+        
+        if (!data || !Array.isArray(data)) {
+          console.log('[fetchTransactions] Invalid data format (not an array)');
+          throw new Error('API returned invalid data format');
+        }
+        
+        if (data.length === 0) {
+          console.log('[fetchTransactions] API returned empty array');
+        } else {
+          console.log(`[fetchTransactions] API returned ${data.length} transactions`);
+          console.log('[fetchTransactions] First transaction:', JSON.stringify(data[0]));
+        }
+        
+        console.log('[fetchTransactions] Setting transactions state');
+        setTransactions(data);
+      } catch (jsonErr) {
+        console.error('[fetchTransactions] JSON parsing error:', jsonErr);
+        setError('Failed to parse transaction data. Invalid format.');
+        setTransactions([]);
+      }
+    } catch (err) {
+      console.error('[fetchTransactions] Network or fetching error:', err.message);
+      setError('Failed to load transactions. Please try again later.');
+      setTransactions([]);
+    } finally {
+      console.log('[fetchTransactions] Request completed, setting isLoading to false');
+      setIsLoading(false);
+    }  
+  };
   
   const handleTransactionPress = (transaction) => {
     navigation.navigate('TransactionDetail', { transaction });
   };
   
-  const renderTransactionGroup = ({ item: group }) => (
-    <View style={styles.transactionGroup} key={group.title}>
-      <Text style={styles.groupTitle}>{group.title}</Text>
-      <Card style={styles.transactionGroupCard}>
-        {group.data.map((transaction, index) => (
-          <React.Fragment key={transaction.id}>
-            <TransactionItem 
-              transaction={transaction} 
-              onPress={handleTransactionPress} 
-            />
-            {index < group.data.length - 1 && <View style={styles.divider} />}
-          </React.Fragment>
-        ))}
-      </Card>
-    </View>
-  );
+  const renderTransactionGroup = ({ item: group }) => {
+    console.log('[renderTransactionGroup] Rendering group:', group.title);
+    console.log('[renderTransactionGroup] Group data count:', group.data?.length || 0);
+    return (
+      <View style={styles.transactionGroup} key={group.title}>
+        <Text style={styles.groupTitle}>{group.title}</Text>
+        <View style={styles.transactionGroupCard}>
+          {group.data.map((transaction, index) => {
+            console.log('[renderTransactionGroup] Rendering transaction item:', transaction.id);
+            return (
+              <React.Fragment key={transaction.id}>
+                <TransactionItem 
+                  transaction={transaction} 
+                  onPress={handleTransactionPress} 
+                />
+                {index < group.data.length - 1 && <View style={styles.divider} />}
+              </React.Fragment>
+            );
+          })}
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -172,12 +311,7 @@ const TransactionsScreen = () => {
         >
           <View style={styles.headerContent}>
             <View style={styles.headerTop}>
-              <TouchableOpacity 
-                style={styles.backButton}
-                onPress={() => navigation.goBack()}
-              >
-                <MaterialIcons name="arrow-back" size={24} color="#fff" />
-              </TouchableOpacity>
+              <View style={{width: 24}} />
               <Text style={styles.headerTitle}>Transaction History</Text>
               <TouchableOpacity style={styles.filterButton}>
                 <MaterialIcons name="filter-list" size={24} color="#fff" />
@@ -251,21 +385,75 @@ const TransactionsScreen = () => {
         </LinearGradient>
       </Animated.View>
       
-      {/* Transaction List */}
-      <Animated.FlatList
-        data={groupedTransactions}
-        renderItem={renderTransactionGroup}
-        keyExtractor={(item) => item.title}
-        contentContainerStyle={styles.listContent}
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-        ListHeaderComponent={<View style={styles.listHeader} />}
-        ListFooterComponent={<View style={styles.listFooter} />}
-      />
+      {/* Use a function to determine what to render based on state */}
+      {(() => {
+        console.log('[render] Rendering UI with current state:');
+        console.log('[render] -> isLoading:', isLoading);
+        console.log('[render] -> error:', error);
+        console.log('[render] -> groupedTransactions.length:', groupedTransactions?.length || 0);
+        console.log('[render] -> transactions.length:', transactions?.length || 0);
+        
+        if (isLoading) {
+          console.log('[render] Showing loading state');
+          return (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color={PRIMARY_BLUE} />
+              <Text style={styles.loadingText}>Loading transactions...</Text>
+            </View>
+          );
+        } 
+        
+        if (error) {
+          console.log('[render] Showing error state:', error);
+          return (
+            <View style={styles.errorContainer}>
+              <MaterialIcons name="error-outline" size={48} color={PRIMARY_BLUE} />
+              <Text style={styles.errorText}>{error}</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={fetchTransactions}
+              >
+                <Text style={styles.retryButtonText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        } 
+        
+        if (groupedTransactions.length === 0) {
+          console.log('[render] Showing empty state - no grouped transactions');
+          return (
+            <View style={styles.emptyContainer}>
+              <MaterialIcons name="account-balance-wallet" size={48} color={PRIMARY_BLUE} />
+              <Text style={styles.emptyText}>No transactions found</Text>
+              <TouchableOpacity 
+                style={styles.retryButton}
+                onPress={fetchTransactions}
+              >
+                <Text style={styles.retryButtonText}>Refresh</Text>
+              </TouchableOpacity>
+            </View>
+          );
+        }
+        
+        // If we reach here, we have data to display
+        console.log('[render] Rendering FlatList with grouped transactions');
+        return (
+          <Animated.FlatList
+            data={groupedTransactions}
+            renderItem={renderTransactionGroup}
+            keyExtractor={(item) => item.title}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            onScroll={Animated.event(
+              [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+              { useNativeDriver: true }
+            )}
+            scrollEventThrottle={16}
+            ListHeaderComponent={<View style={styles.listHeader} />}
+            ListFooterComponent={<View style={styles.listFooter} />}
+          />
+        );
+      })()} {/* Immediately invoke the function */}
       
       {/* Fixed Filter Bar (shown when scrolling) */}
       <Animated.View 
@@ -373,10 +561,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 24,
-  },
-  backButton: {
-    padding: 8,
-    marginLeft: -8,
   },
   headerTitle: {
     fontSize: 18,
@@ -545,6 +729,55 @@ const styles = StyleSheet.create({
   activeSmallFilterButtonText: {
     color: '#FFBC18',
     fontWeight: '600',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: PRIMARY_BLUE,
+    fontWeight: '500',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+    paddingHorizontal: 20,
+  },
+  errorText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: PRIMARY_BLUE,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    backgroundColor: PRIMARY_BLUE,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingTop: 100,
+  },
+  emptyText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: PRIMARY_BLUE,
+    fontWeight: '500',
   },
 });
 

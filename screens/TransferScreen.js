@@ -6,6 +6,7 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button, Card } from '../components';
 import { useTransactions } from '../context/TransactionContext';
 import { TextInput } from 'react-native-paper';
+import { PRIMARY, ACCENT, NEUTRAL, SEMANTIC } from '../src/constants/colors';
 
 const TransferScreen = () => {
   const navigation = useNavigation();
@@ -193,9 +194,9 @@ const handleContinue = () => {
                   placeholder="Search name, @username, or email"
                   left={
                     <TextInput.Icon 
-                      icon="magnify"
-                      size={20}
-                      color="#a1a1a1"
+                      icon={(props) => (
+                        <Icon name="search" size={20} color="#a1a1a1" />
+                      )}
                     />
                   }
                   style={styles.searchInput}
@@ -283,9 +284,9 @@ const handleContinue = () => {
                 onChangeText={setNote}
                 left={
                   <TextInput.Icon 
-                    icon="note-text"
-                    size={20}
-                    color="#a1a1a1"
+                    icon={(props) => (
+                      <Icon name="note" size={20} color="#a1a1a1" />
+                    )}
                   />
                 }
                 style={styles.noteInput}

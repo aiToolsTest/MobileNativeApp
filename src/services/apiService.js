@@ -56,3 +56,27 @@ export const fetchDummyBalance = async () => {
     return '0.00';
   }
 };
+
+// 💸 Move Funds API - Transfer money between accounts
+export const postMoveFunds = async (sourceAccountId, destinationAccountId, amount) => {
+  try {
+    console.log('📡 API Call: Moving funds between accounts...');
+    console.log('📝 Payload:', { sourceAccountId, destinationAccountId, amount });
+    
+    const response = await axios.post(`${API_BASE_URL}/transaction/movefunds`, {
+      SourceAccountId: sourceAccountId,
+      DestinationAccountId: destinationAccountId,
+      Amount: parseFloat(amount)
+    });
+    
+    console.log('✅ Transfer successful:', response.data);
+    return response.data;
+  } catch (error) {
+    if (error.response) {
+      console.error('❌ Transfer error:', error.response.status, error.response.data);
+    } else {
+      console.error('❌ Network or Axios Error:', error.message);
+    }
+    throw error;
+  }
+};

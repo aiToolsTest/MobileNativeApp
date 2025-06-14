@@ -2,17 +2,22 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { StatusBar, Platform, View, ActivityIndicator, StyleSheet } from 'react-native';
+import { StatusBar, Platform, View, ActivityIndicator, StyleSheet, LogBox } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
-import { Provider as PaperProvider } from 'react-native-paper';
+import { Provider as PaperProvider, MD3LightTheme } from 'react-native-paper';
+import { customTheme, getIconForName } from './src/utils/iconConfig';
 import { AuthProvider } from './context/AuthContext';
 import { useUser } from './context/UserContext';
 import { TransactionProvider } from './context/TransactionContext';
 import { UserProvider } from './context/UserContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import { Text } from 'react-native';
+
+// Disable all error and warning messages on the app screen
+// They will still be logged to the console for debugging
+LogBox.ignoreAllLogs();
 
 // Screens
 import LoginScreen from './screens/LoginScreen';
@@ -34,16 +39,16 @@ const MainTabs = () => {
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
-          if (route.name === 'Dashboard') {
-            return <MaterialIcons name="dashboard" size={size} color={color} />;
-          } else if (route.name === 'Transactions') {
+          if (route.name === 'Home') {
+            return <MaterialIcons name="home" size={size} color={color} />;
+          } else if (route.name === 'Transfers') {
             return <MaterialIcons name="swap-horiz" size={size} color={color} />;
           } else if (route.name === 'Profile') {
             return <MaterialIcons name="account-circle" size={size} color={color} />;
           }
           return null;
         },
-        tabBarActiveTintColor: '#4361ee',
+        tabBarActiveTintColor: '#003E6D',
         tabBarInactiveTintColor: '#6c757d',
         tabBarStyle: {
           height: Platform.OS === 'ios' ? 90 : 70,
@@ -66,8 +71,8 @@ const MainTabs = () => {
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} />
+      <Tab.Screen name="Home" component={DashboardScreen} />
+      <Tab.Screen name="Transfers" component={TransactionScreen} />
       <Tab.Screen name="Profile" component={ProfileScreen} />
     </Tab.Navigator>
   );
@@ -93,12 +98,15 @@ const App = () => {
           fontSize: 18,
         },
         headerBackTitleVisible: false,
+        headerBackTitle: null,
+        headerLeftContainerStyle: {
+          paddingLeft: 10,
+        },
         headerBackImage: () => (
           <Icon 
             name="arrow-back" 
             size={24} 
             color="#fff" 
-            style={{ marginLeft: 15 }} 
           />
         ),
       }}
@@ -174,8 +182,21 @@ const App = () => {
 
 // Wrap the main app with providers
 const AppWrapper = () => {
+  // Create a theme with proper icon provider configuration
+  const theme = {
+    ...customTheme,
+    // Register custom icons for react-native-paper
+    icons: {
+      // Icon provider for MaterialIcons
+      'material': {
+        // This function will be used to resolve icon names to components
+        getIcon: (name) => getIconForName(name),
+      },
+    },
+  };
+
   return (
-    <PaperProvider>
+    <PaperProvider theme={theme}>
       <AuthProvider>
         <TransactionProvider>
           <UserProvider>

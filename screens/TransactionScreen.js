@@ -1,24 +1,23 @@
 import React, { useState } from 'react';
 import { useTransactions } from '../context/TransactionContext';
 import { useUser } from '../context/UserContext';
-import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Alert, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator } from 'react-native';
 import { Menu, Provider as PaperProvider } from 'react-native-paper';
 import AccountSelector from '../components/AccountSelector';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button as CustomButton, Card } from '../components';
 import { TextInput } from 'react-native-paper';
-import { LIGHT_YELLOW, PRIMARY_BLUE } from '../src/constants/colors';
+import { PRIMARY, ACCENT, NEUTRAL, SEMANTIC } from '../src/constants/colors';
+import { postMoveFunds } from '../src/services/apiService';
 
 
 const TransactionScreen = () => {
   const navigation = useNavigation();
   
-  
   const { accounts } = useUser();
   const [formData, setFormData] = useState({
     amount: '',
-    description: '',
     fromAccount: accounts && accounts.length > 0 ? accounts[0].id : '',
     toAccount: accounts && accounts.length > 1 ? accounts[1].id : '',
     category: 'transfer',
@@ -40,7 +39,6 @@ const TransactionScreen = () => {
   const handleClear = () => {
     setFormData({
       amount: '',
-      description: '',
       fromAccount: accounts && accounts.length > 0 ? accounts[0].id : '',
       toAccount: accounts && accounts.length > 1 ? accounts[1].id : '',
       category: 'transfer',
@@ -71,125 +69,173 @@ const TransactionScreen = () => {
       Alert.alert('Error', 'Please select both accounts and enter an amount.');
       return;
     }
+    
     if (formData.fromAccount === formData.toAccount) {
       Alert.alert('Error', 'From and To accounts must be different.');
       return;
     }
     
-    // Find the account details for display
+    // Parse amount as float for validation
+    const amountValue = parseFloat(formData.amount);
+    if (isNaN(amountValue) || amountValue <= 0) {
+      Alert.alert('Error', 'Please enter a valid amount greater than zero.');
+      return;
+    }
+    
+    // Find the account details for display and validation
     const fromAccount = accounts.find(acc => acc.id === formData.fromAccount) || {};
     const toAccount = accounts.find(acc => acc.id === formData.toAccount) || {};
+    
+    // Check for insufficient funds
+    if (fromAccount.balance < amountValue) {
+      Alert.alert('Insufficient Funds', `You don't have enough funds in ${fromAccount.accountType}. Available balance: $${fromAccount.balance.toFixed(2)}`);
+      return;
+    }
+    
     // Show confirmation dialog before finalizing
     Alert.alert(
       'Confirm Transfer',
-      `Transfer $${formData.amount} from ${fromAccount.accountType || 'account'} to ${toAccount.accountType || 'account'}${formData.description ? ` for "${formData.description}"` : ''}?`,
+      `Transfer $${formData.amount} from ${fromAccount.accountType || 'account'} to ${toAccount.accountType || 'account'}?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Confirm',
           onPress: () => {
             setIsLoading(true);
-            setTimeout(() => {
+            
+            // Call the API to move funds between accounts
+            postMoveFunds(
+              formData.fromAccount, 
+              formData.toAccount, 
+              formData.amount
+            )
+            .then(response => {
+              // API call succeeded
+              console.log('Transfer successful:', response);
+              
+              // Add local transaction record
               addTransaction({
                 type: 'transfer',
                 amount: parseFloat(formData.amount),
                 fromAccount: formData.fromAccount,
                 toAccount: formData.toAccount,
-                description: formData.description,
-                category: 'transfer',
+                date: new Date().toISOString(),
+                status: 'completed',
+                notes: `Transfer to ${toAccount.accountType || 'account'}`
               });
+              
+              // Clear form data
+              handleClear();
+              
+              // Show success message
+              Alert.alert(
+                'Transfer Successful',
+                `$${formData.amount} has been transferred successfully.`,
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      // Navigate to transactions screen or detail screen
+                      navigation.navigate('TransactionDetailScreen', {
+                        transaction: {
+                          type: 'transfer',
+                          amount: parseFloat(formData.amount),
+                          fromAccount: formData.fromAccount,
+                          toAccount: formData.toAccount,
+                          date: new Date().toISOString(),
+                          status: 'completed'
+                        }
+                      });
+                    }
+                  }
+                ]
+              );
+            })
+            .catch(error => {
+              // API call failed
+              console.error('Transfer error:', error);
+              Alert.alert(
+                'Transfer Failed',
+                'There was an error processing your transfer. Please try again later.',
+                [{ text: 'OK' }]
+              );
+            })
+            .finally(() => {
               setIsLoading(false);
-              Alert.alert('Success', 'Transfer completed!', [
-                { text: 'OK', onPress: () => navigation.goBack() },
-              ]);
-            }, 1000);
-          },
-        },
+            });
+          }
+        }
       ]
     );
   };
 
   return (
     <KeyboardAvoidingView 
-      style={[styles.container, { backgroundColor: LIGHT_YELLOW }]}
+      style={[styles.container, { backgroundColor: ACCENT.LIGHT }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
     >
       <View style={{ flex: 1, backgroundColor: '#FFF9E3' }}>
+        {isLoading && (
+          <View style={styles.loadingOverlay}>
+            <ActivityIndicator size="large" color={PRIMARY.MAIN} />
+            <Text style={styles.loadingText}>Processing transaction...</Text>
+          </View>
+        )}
         <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center', paddingBottom: 90 }}>
           <Card style={[styles.card, { width: '90%', padding: 24, backgroundColor: '#FFF9E3' }]}>    
-            <Text style={[styles.sectionTitle, { color: PRIMARY_BLUE, textAlign: 'center', marginBottom: 32 }]}>Add New Transaction</Text>
+            <Text style={[styles.sectionTitle, { color: PRIMARY.MAIN, textAlign: 'center', marginBottom: 32 }]}>Move Between Accounts</Text>
 
             <AccountSelector
-  label="From Account*"
-  accounts={accounts}
-  selectedAccountId={formData.fromAccount}
-  onSelect={id => handleInputChange('fromAccount', id)}
-  testID="from-account-selector"
-/>
+              label="From Account*"
+              accounts={accounts}
+              selectedAccountId={formData.fromAccount}
+              onSelect={id => handleInputChange('fromAccount', id)}
+              testID="from-account-selector"
+            />
             <AccountSelector
-  label="To Account*"
-  accounts={accounts}
-  selectedAccountId={formData.toAccount}
-  onSelect={id => handleInputChange('toAccount', id)}
-  testID="to-account-selector"
-/>
-
-            {/* Amount Input (required) */}
-            <TextInput
-              label="Amount*"
-              value={formData.amount}
-              onChangeText={(text) => handleInputChange('amount', text.replace(/[^0-9.]/g, ''))}
-              keyboardType="numeric"
-              placeholder="0.00 (required)"
-              style={[styles.input, { color: PRIMARY_BLUE }]}
-              mode="outlined"
-              theme={{
-                colors: {
-                  primary: LIGHT_YELLOW,
-                  text: PRIMARY_BLUE,
-                  placeholder: '#a1a1a1',
-                  background: '#FFF9E3',
-                },
-                roundness: 8,
-              }}
+              label="To Account*"
+              accounts={accounts}
+              selectedAccountId={formData.toAccount}
+              onSelect={id => handleInputChange('toAccount', id)}
+              testID="to-account-selector"
+              filteredAccountIds={[formData.fromAccount]}
             />
 
-            {/* Reason Input (optional) */}
-            <TextInput
-              label="Reason (optional)"
-              value={formData.description}
-              onChangeText={(text) => handleInputChange('description', text)}
-              placeholder="Reason for transfer (optional)"
-              style={[styles.input, { color: PRIMARY_BLUE }]}
-              mode="outlined"
-              theme={{
-                colors: {
-                  primary: LIGHT_YELLOW,
-                  text: PRIMARY_BLUE,
-                  placeholder: '#a1a1a1',
-                  background: '#FFF9E3',
-                },
-                roundness: 8,
-              }}
-            />
+            <View style={styles.amountInputContainer}>
+              <TextInput
+                label="Amount*"
+                value={formData.amount}
+                onChangeText={(text) => handleInputChange('amount', text.replace(/[^0-9.]/g, ''))}
+                keyboardType="numeric"
+                placeholder="0.00"
+                style={[styles.input, { color: '#000', backgroundColor: '#fff' }]}
+                mode="outlined"
+                theme={{
+                  colors: {
+                    primary: PRIMARY.MAIN,
+                    text: '#000',
+                    placeholder: '#777',
+                    background: '#fff',
+                    outline: PRIMARY.MAIN,
+                  },
+                  roundness: 12,
+                }}
+                outlineStyle={{ borderWidth: 2 }}
+                left={<TextInput.Affix text="$" textStyle={styles.currencySymbol} />}
+              />
+            </View>
           </Card>
         </ScrollView>
-        {/* Action buttons at the very bottom */}
+        {/* Action button centered at the bottom */}
         <View style={styles.buttonRow}>
-          <CustomButton
-            mode="contained"
-            onPress={handleClear}
-            style={[styles.actionButton, styles.clearButton]}
-            labelStyle={styles.actionButtonLabel}
-          >
-            Clear
-          </CustomButton>
           <CustomButton
             mode="contained"
             onPress={handleCreateTransaction}
             style={[styles.actionButton, styles.sendButton]}
+            color="#003E6D"
             labelStyle={styles.actionButtonLabel}
+            disabled={isLoading}
           >
             Send
           </CustomButton>
@@ -214,7 +260,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
     marginBottom: 20,
-    color: PRIMARY_BLUE,
+    color: PRIMARY.MAIN,
   },
   input: {
     marginBottom: 16,
@@ -226,9 +272,14 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   currencySymbol: {
-    fontSize: 16,
+    fontSize: 18,
     marginRight: 8,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: '#000',
+  },
+  amountInputContainer: {
+    width: '100%',
+    marginBottom: 16,
   },
   inputIcon: {
     marginRight: 8,
@@ -252,7 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: LIGHT_YELLOW,
+    borderColor: ACCENT.LIGHT,
     marginRight: 8,
     marginBottom: 8,
   },
@@ -266,7 +317,7 @@ const styles = StyleSheet.create({
   // Remove submitButton, use actionButton styles for new layout
   buttonRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
     position: 'absolute',
@@ -282,20 +333,34 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#4361ee',
+    backgroundColor: '#003E6D',
     elevation: 2,
   },
   sendButton: {
-    alignSelf: 'flex-end',
-  },
-  clearButton: {
-    alignSelf: 'flex-start',
+    // Uses parent's justifyContent: 'center'
   },
   actionButtonLabel: {
-    color: '#FFD600',
-    fontWeight: 'bold',
-    fontSize: 18,
-    letterSpacing: 1,
+    color: ACCENT.MAIN,
+    fontWeight: '500',
+    fontSize: 20,
+    letterSpacing: 0.5,
+  },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: `${ACCENT.LIGHT}CC`,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: PRIMARY.MAIN,
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 
