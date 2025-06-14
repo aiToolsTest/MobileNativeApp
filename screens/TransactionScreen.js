@@ -9,13 +9,13 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import { Button as CustomButton, Card } from '../components';
 import { TextInput } from 'react-native-paper';
 import { PRIMARY, ACCENT, NEUTRAL, SEMANTIC } from '../src/constants/colors';
-import { postMoveFunds } from '../src/services/apiService';
+import { postMoveFunds, fetchAccounts } from '../src/services/apiService';
 
 
 const TransactionScreen = () => {
   const navigation = useNavigation();
   
-  const { accounts } = useUser();
+  const { accounts, userId, setAccounts } = useUser();
   const [formData, setFormData] = useState({
     amount: '',
     fromAccount: accounts && accounts.length > 0 ? accounts[0].id : '',
@@ -112,6 +112,15 @@ const TransactionScreen = () => {
             .then(response => {
               // API call succeeded
               console.log('Transfer successful:', response);
+              
+              // Refresh account balances from server
+              console.log('Refreshing account balances...');
+              return fetchAccounts(userId);
+            })
+            .then(freshAccounts => {
+              // Update accounts in context with fresh data
+              console.log('Updating accounts with fresh data', freshAccounts);
+              setAccounts(freshAccounts);
               
               // Add local transaction record
               addTransaction({

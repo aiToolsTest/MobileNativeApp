@@ -70,7 +70,7 @@ const ProfileScreen = () => {
         </View>
         <View style={styles.avatarContainer}>
           <Text style={styles.avatarText}>
-            {fullName ? fullName.charAt(0).toUpperCase() : 'U'}
+            {fullName ? fullName.split(' ').map(name => name.charAt(0).toUpperCase()).join('') : 'U'}
           </Text>
         </View>
         <Text style={styles.userName}>{fullName || 'User'}</Text>

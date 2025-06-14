@@ -59,6 +59,42 @@ const groupTransactionsByDate = (transactions) => {
   }));
   
   console.log('Grouped transactions result:', JSON.stringify(result));
+  // Sort the groups to ensure latest transactions appear first
+  result.sort((a, b) => {
+    // Custom sorting order: Today, Yesterday, This Week, This Month, then by date
+    const order = {
+      'Today': 0,
+      'Yesterday': 1,
+      'This Week': 2,
+      'This Month': 3
+    };
+    
+    // If both titles are in our predefined order
+    if (order[a.title] !== undefined && order[b.title] !== undefined) {
+      return order[a.title] - order[b.title];
+    }
+    // If only a is in predefined order, it comes first
+    else if (order[a.title] !== undefined) {
+      return -1;
+    }
+    // If only b is in predefined order, it comes first
+    else if (order[b.title] !== undefined) {
+      return 1;
+    }
+    // Otherwise sort by date (most recent month first)
+    else {
+      // Parse month names like "January 2023" and compare
+      try {
+        const dateA = new Date(a.title);
+        const dateB = new Date(b.title);
+        return dateB - dateA;
+      } catch (err) {
+        console.error('Error comparing group dates:', err);
+        return 0;
+      }
+    }
+  });
+  
   return result;
 };
 

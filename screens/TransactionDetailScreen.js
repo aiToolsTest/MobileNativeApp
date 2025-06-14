@@ -67,8 +67,18 @@ const TransactionDetailScreen = () => {
         const data = await response.json();
         console.log(`[AccountDetail] Received ${data.length} transactions`);
         
+        // Sort transactions by date in descending order (latest first)
+        const sortedData = [...data].sort((a, b) => {
+          try {
+            return new Date(b.date) - new Date(a.date);
+          } catch (err) {
+            console.error('Error sorting dates:', err);
+            return 0;
+          }
+        });
+        
         // Process and set the transactions
-        setFilteredTransactions(data);
+        setFilteredTransactions(sortedData);
       } catch (err) {
         console.error('[AccountDetail] Error fetching transactions:', err);
         setError('Failed to load transactions for this account');
@@ -120,7 +130,16 @@ const TransactionDetailScreen = () => {
                     fetch(`https://bank-poc-api-func.azurewebsites.net/api/transactions/${accountId}`)
                       .then(response => response.json())
                       .then(data => {
-                        setFilteredTransactions(data);
+                        // Sort transactions by date in descending order (latest first)
+                        const sortedData = [...data].sort((a, b) => {
+                          try {
+                            return new Date(b.date) - new Date(a.date);
+                          } catch (err) {
+                            console.error('Error sorting dates:', err);
+                            return 0;
+                          }
+                        });
+                        setFilteredTransactions(sortedData);
                         setIsLoading(false);
                       })
                       .catch(err => {
