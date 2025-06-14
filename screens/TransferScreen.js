@@ -97,7 +97,7 @@ const handleContinue = () => {
               });
               setIsLoading(false);
               Alert.alert('Success', 'Transfer complete!', [
-                { text: 'OK', onPress: () => navigation.goBack() },
+                { text: 'OK', onPress: () => navigation.navigate('Main', { screen: 'Home' }) },
               ]);
             }, 1000);
           },
