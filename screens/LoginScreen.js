@@ -8,8 +8,8 @@ import { PRIMARY, ACCENT, NEUTRAL, SEMANTIC } from '../src/constants/colors';
 import LinearGradient from 'react-native-linear-gradient';
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('sbalaz@kpmg.ca');
+  const [password, setPassword] = useState('Test123');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
