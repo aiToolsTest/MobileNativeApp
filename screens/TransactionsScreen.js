@@ -366,49 +366,49 @@ const TransactionsScreen = () => {
             </View>
             
             <View style={styles.filterContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  activeFilter === 'all' && styles.activeFilterButton
+                  activeFilter === 'all' && styles.activeFilterButton,
                 ]}
                 onPress={() => setActiveFilter('all')}
               >
-                <Text 
+                <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === 'all' && styles.activeFilterButtonText
+                    activeFilter === 'all' && styles.activeFilterButtonText,
                   ]}
                 >
                   All
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  activeFilter === 'sent' && styles.activeFilterButton
+                  activeFilter === 'sent' && styles.activeFilterButton,
                 ]}
                 onPress={() => setActiveFilter('sent')}
               >
-                <Text 
+                <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === 'sent' && styles.activeFilterButtonText
+                    activeFilter === 'sent' && styles.activeFilterButtonText,
                   ]}
                 >
                   Sent
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  activeFilter === 'received' && styles.activeFilterButton
+                  activeFilter === 'received' && styles.activeFilterButton,
                 ]}
                 onPress={() => setActiveFilter('received')}
               >
-                <Text 
+                <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === 'received' && styles.activeFilterButtonText
+                    activeFilter === 'received' && styles.activeFilterButtonText,
                   ]}
                 >
                   Received
