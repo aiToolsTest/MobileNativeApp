@@ -101,15 +101,18 @@ const TransactionDetailScreen = () => {
           end={{ x: 1, y: 1 }}
         >
           <View style={styles.header}>
-            <View style={{width: 24}} />
-            <Text style={styles.headerTitle}>{accountName || 'Account'} Transactions</Text>
+            <View>
+              <Text style={styles.accountIdHeader}>{accountId}</Text>
+              <Text style={styles.headerTitle}>{accountName || 'Account'}</Text>
+            </View>
           </View>
           
           <View style={styles.accountSummary}>
             <Text style={styles.accountLabel}>Available Balance</Text>
             <Text style={styles.accountBalance}>
-              {accountCurrency || '$'} {typeof accountBalance === 'number' ? accountBalance.toFixed(2) : '0.00'}
+              {accountCurrency} {accountBalance ? accountBalance.toFixed(2) : '0.00'}
             </Text>
+            <Text style={styles.transfersLabel}>Transfers</Text>
           </View>
         </LinearGradient>
         
@@ -184,9 +187,7 @@ const TransactionDetailScreen = () => {
                           `To: ${item.destinationAccountId}` : 
                           `From: ${item.sourceAccountId}`}
                       </Text>
-                      <Text style={styles.transactionNote} numberOfLines={1}>
-                        {item.note || 'Transfer'}
-                      </Text>
+                      <Text style={styles.transactionNote}>{item.note}</Text>
                       <Text style={styles.transactionDate}>
                         {item.date ? format(new Date(item.date), 'MMM d, yyyy - h:mm a') : 'Unknown date'}
                       </Text>
@@ -512,18 +513,23 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
     paddingHorizontal: 20,
-    marginBottom: 24,
+    marginBottom: 16,
   },
   backButton: {
     padding: 8,
     marginLeft: -8,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 28,
+    fontWeight: '700',
     color: '#fff',
+  },
+  accountIdHeader: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.8)',
+    marginBottom: 4,
   },
   shareButton: {
     padding: 8,
@@ -752,8 +758,9 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   accountSummary: {
-    alignItems: 'center',
+    alignItems: 'flex-start',
     paddingVertical: 16,
+    paddingHorizontal: 20,
   },
   accountLabel: {
     fontSize: 14,
@@ -764,6 +771,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: '700',
     color: '#fff',
+  },
+  transfersLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: 'rgba(255, 255, 255, 0.9)',
+    marginTop: 8,
   },
   transactionsList: {
     paddingTop: 8,
