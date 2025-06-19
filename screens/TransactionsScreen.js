@@ -340,7 +340,7 @@ const TransactionsScreen = () => {
         ]}
       >
         <LinearGradient
-          colors={['#FFBC18', '#FFBC18']}
+          colors={[LIGHT_YELLOW, LIGHT_YELLOW]}
           style={styles.headerGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -356,13 +356,11 @@ const TransactionsScreen = () => {
             
             <View style={styles.balanceContainer}>
               <Text style={styles.balanceLabel}>Total Balance</Text>
-              <Text style={styles.balanceAmount}>
-                ${
+              <Text style={styles.balanceAmount}>${
                   accounts && accounts.length > 0
                     ? accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0).toFixed(2)
                     : '0.00'
-                }
-              </Text>
+                }</Text>
               {/* Optionally, you can remove or update the balanceChange line below if not needed */}
               {/* <Text style={styles.balanceChange}>+2.3% this month</Text> */}
             </View>
@@ -600,36 +598,42 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: PRIMARY_BLUE,
+    fontWeight: '700',
+    color: '#00456E',
+    textAlign: 'center',
   },
   filterButton: {
     padding: 8,
   },
   balanceContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   balanceLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#00456E',
+    opacity: 0.8,
     marginBottom: 4,
   },
   balanceAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: PRIMARY_BLUE,
+    color: '#00456E',
     marginBottom: 4,
   },
   balanceChange: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#00456E',
+    opacity: 0.8,
   },
   filterContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginHorizontal: 20,
-    backgroundColor: LIGHT_YELLOW,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 4,
   },
@@ -640,10 +644,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeFilterButton: {
-    backgroundColor: PRIMARY_BLUE,
+    backgroundColor: '#00456E',
   },
   filterButtonText: {
-    color: PRIMARY_BLUE,
+    color: '#00456E',
     fontWeight: '500',
   },
   activeFilterButtonText: {

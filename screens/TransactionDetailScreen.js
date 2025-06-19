@@ -95,7 +95,7 @@ const TransactionDetailScreen = () => {
     return (
       <View style={styles.container}>
         <LinearGradient
-          colors={[PRIMARY_BLUE, '#3a0ca3']}
+          colors={[LIGHT_YELLOW, LIGHT_YELLOW]}
           style={styles.headerGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -109,9 +109,7 @@ const TransactionDetailScreen = () => {
           
           <View style={styles.accountSummary}>
             <Text style={styles.accountLabel}>Available Balance</Text>
-            <Text style={styles.accountBalance}>
-              {accountCurrency} {accountBalance ? accountBalance.toFixed(2) : '0.00'}
-            </Text>
+            <Text style={styles.accountBalance}>$ {accountBalance ? accountBalance.toFixed(2) : '0.00'}</Text>
             <Text style={styles.transfersLabel}>Transfers</Text>
           </View>
         </LinearGradient>
@@ -524,11 +522,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    color: '#fff',
+    color: '#00456E',
   },
   accountIdHeader: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#00456E',
+    opacity: 0.8,
     marginBottom: 4,
   },
   shareButton: {
@@ -764,18 +763,19 @@ const styles = StyleSheet.create({
   },
   accountLabel: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: '#00456E',
+    opacity: 0.7,
     marginBottom: 4,
   },
   accountBalance: {
     fontSize: 24,
     fontWeight: '700',
-    color: '#fff',
+    color: '#00456E',
   },
   transfersLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: '#00456E',
     marginTop: 8,
   },
   transactionsList: {
