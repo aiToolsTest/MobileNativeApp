@@ -238,42 +238,24 @@ const TransactionDetailScreen = () => {
   
   // If no transaction was passed, we'll redirect back
   if (!routeTransaction) {
-    React.useEffect(() => {
-      navigation.goBack();
-    }, []);
-    return null;
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorText}>Transaction details not available.</Text>
+      </View>
+    );
   }
-  
-  const transaction = routeTransaction;
-  
-  const isSent = transaction.type === 'sent';
-  const isPending = transaction.status === 'pending';
-  
+
+  // TODO: Fetch user's primary account ID dynamically (e.g., from useUser() context if available).
+  const currentUserAccountId = 'ACC001'; // Placeholder, consistent with TransactionsScreen.js
+  const isSent = routeTransaction.sourceAccountId === currentUserAccountId;
+  const isPending = routeTransaction.status === 'pending';
+
   const getStatusColor = () => {
-    if (isPending) return '#f39c12';
-    return isSent ? '#e63946' : '#2ecc71';
+    if (isPending) return '#FFC107'; // Amber for pending
+    return isSent ? '#D32F2F' : '#4CAF50'; // Red for sent, Green for received
   };
-  
-  const getCategoryName = () => {
-    switch (transaction.category) {
-      case 'food':
-        return 'Food & Dining';
-      case 'bills':
-        return 'Bills & Utilities';
-      case 'shopping':
-        return 'Shopping';
-      case 'entertainment':
-        return 'Entertainment';
-      case 'subscription':
-        return 'Subscriptions';
-      case 'income':
-        return 'Income';
-      case 'transfer':
-        return isSent ? 'Money Sent' : 'Money Received';
-      default:
-        return transaction.category || 'Transaction';
-    }
-  };
+
+  const transaction = routeTransaction;
   
   const handleShare = async () => {
     try {
@@ -320,12 +302,12 @@ const TransactionDetailScreen = () => {
           <View style={[styles.amountIcon, { backgroundColor: `${getStatusColor()}20` }]}>
             <Icon 
               name={getCategoryIcon('transfer', isSent ? 'sent' : 'received')} 
-              size={24} 
+              size={28} 
               color={getStatusColor()} 
             />
           </View>
-          <Text style={styles.amount}>
-            {isSent ? '-' : '+'}${(transaction.amount !== undefined && transaction.amount !== null) ? transaction.amount.toFixed(2) : '0.00'}
+          <Text style={[styles.amount, { color: getStatusColor() }]}>
+            {isSent ? '-' : '+'}${routeTransaction.amount ? routeTransaction.amount.toFixed(2) : '0.00'}
           </Text>
           <Text style={[styles.status, { color: getStatusColor() }]}>
             {isPending ? 'Pending' : isSent ? 'Sent' : 'Received'}
