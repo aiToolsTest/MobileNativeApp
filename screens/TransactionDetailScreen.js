@@ -12,7 +12,7 @@ import { LIGHT_YELLOW, PRIMARY_BLUE } from '../src/constants/colors';
 // Format date helper function
 const formatDate = (dateString) => {
   const date = parseISO(dateString);
-  return format(date, 'EEEE, MMMM d, yyyy \\at h:mm a');
+  return format(date, 'EEEE, MMMM d, yyyy');
 };
 
 // Get category icon helper function
@@ -97,7 +97,7 @@ const TransactionDetailScreen = () => {
       <View style={styles.container}>
         <LinearGradient
           colors={[LIGHT_YELLOW, LIGHT_YELLOW]}
-          style={styles.headerGradient}
+          style={[styles.headerGradient, { paddingTop: 8 }]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         >
@@ -300,14 +300,14 @@ const TransactionDetailScreen = () => {
     <View style={styles.container}>
       {/* Header */}
       <LinearGradient
-        colors={['#4361ee', '#3a0ca3']}
+        colors={[LIGHT_YELLOW, LIGHT_YELLOW]}
         style={styles.headerGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
       >
         <View style={styles.header}>
           <View style={{width: 24}} />
-          <Text style={styles.headerTitle}>Transaction Details</Text>
+          <Text style={styles.headerTitle}></Text>
           <TouchableOpacity 
             style={styles.shareButton}
             onPress={handleShare}
@@ -319,7 +319,7 @@ const TransactionDetailScreen = () => {
         <View style={styles.amountContainer}>
           <View style={[styles.amountIcon, { backgroundColor: `${getStatusColor()}20` }]}>
             <Icon 
-              name={getCategoryIcon()} 
+              name={getCategoryIcon('transfer', isSent ? 'sent' : 'received')} 
               size={24} 
               color={getStatusColor()} 
             />
@@ -337,7 +337,6 @@ const TransactionDetailScreen = () => {
         {/* Transaction Info */}
         <Card style={styles.infoCard}>
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Description</Text>
             <Text style={styles.infoValue} numberOfLines={2}>
               {transaction.description}
             </Text>
@@ -347,27 +346,19 @@ const TransactionDetailScreen = () => {
           
           <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>From Account</Text>
-            <Text style={styles.infoValue}>{transaction.fromAccount}</Text>
+            <Text style={styles.infoValue}>{transaction.sourceAccountId}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.infoItem}>
             <Text style={styles.infoLabel}>To Account</Text>
-            <Text style={styles.infoValue}>{transaction.toAccount}</Text>
+            <Text style={styles.infoValue}>{transaction.destinationAccountId}</Text>
           </View>
           
           <View style={styles.divider} />
           
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Category</Text>
-            <View style={styles.categoryInfo}>
-              <View style={[styles.categoryIcon, { backgroundColor: `${getStatusColor()}15` }]}>
-                <Icon 
-                  name={getCategoryIcon()} 
-                  size={16} 
-                  color={getStatusColor()} 
-                />
-              </View>
-              <Text style={styles.infoValue}>
-                {getCategoryName()}
-              </Text>
-            </View>
+            <Text style={styles.infoLabel}>Type</Text>
+            <Text style={styles.infoValue}>{isSent ? 'Sent' : 'Received'}</Text>
           </View>
           
           <View style={styles.divider} />
@@ -379,19 +370,7 @@ const TransactionDetailScreen = () => {
             </Text>
           </View>
           
-          <View style={styles.divider} />
-          
-          <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Reference ID</Text>
-            <View style={styles.referenceContainer}>
-              <Text style={styles.referenceText}>
-                {transaction.reference || 'N/A'}
-              </Text>
-              <TouchableOpacity style={styles.copyButton}>
-                <Icon name="content-copy" size={16} color="#4361ee" />
-              </TouchableOpacity>
-            </View>
-          </View>
+
           
           {transaction.fee > 0 && (
             <>
@@ -408,9 +387,8 @@ const TransactionDetailScreen = () => {
           <View style={styles.divider} />
           
           <View style={styles.infoItem}>
-            <Text style={styles.infoLabel}>Account</Text>
             <Text style={styles.infoValue}>
-              {transaction.account || 'Main Account'}
+              {transaction.account || ''}
             </Text>
           </View>
           
@@ -425,40 +403,14 @@ const TransactionDetailScreen = () => {
                     {transaction.location}
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.mapButton}>
+                {/* <TouchableOpacity style={styles.mapButton}>
                   <Text style={styles.mapButtonText}>View on Map</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </>
           )}
         </Card>
         
-        {/* Receipt (if available) */}
-        <Card style={[styles.receiptCard, { opacity: isPending ? 0.6 : 1 }]}>
-          <View style={styles.receiptHeader}>
-            <Icon name="receipt" size={20} color="#6c757d" />
-            <Text style={styles.receiptTitle}>Receipt</Text>
-          </View>
-          
-          {isPending ? (
-            <View style={styles.pendingReceipt}>
-              <Text style={styles.pendingReceiptText}>
-                Receipt will be available once the transaction is complete
-              </Text>
-            </View>
-          ) : (
-            <View style={styles.receiptContent}>
-              <Image
-                source={require('../assets/receipt-placeholder.png')}
-                style={styles.receiptImage}
-                resizeMode="contain"
-              />
-              <TouchableOpacity style={styles.downloadButton}>
-                <Text style={styles.downloadButtonText}>Download Receipt</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </Card>
         
         {/* Action Buttons */}
         <View style={styles.actionButtons}>
@@ -503,8 +455,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8f9fa',
   },
   headerGradient: {
-    paddingTop: 50,
-    paddingBottom: 30,
+    paddingTop: 20,
+    paddingBottom: 15,
     borderBottomLeftRadius: 24,
     borderBottomRightRadius: 24,
     elevation: 4,
@@ -512,16 +464,16 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-start',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    marginBottom: 16,
+    marginBottom: 8,
   },
   backButton: {
     padding: 8,
     marginLeft: -8,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: '700',
     color: '#00456E',
   },
@@ -544,13 +496,13 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
   },
   amount: {
     fontSize: 40,
     fontWeight: '700',
-    color: '#fff',
-    marginBottom: 8,
+    color: '#00456E',
+    marginBottom: 4,
   },
   status: {
     fontSize: 16,
@@ -759,7 +711,7 @@ const styles = StyleSheet.create({
   },
   accountSummary: {
     alignItems: 'flex-start',
-    paddingVertical: 16,
+    paddingVertical: 4,
     paddingHorizontal: 20,
   },
   accountLabel: {
@@ -777,7 +729,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#00456E',
-    marginTop: 8,
+    marginTop: 4,
   },
   transactionsList: {
     paddingTop: 8,
