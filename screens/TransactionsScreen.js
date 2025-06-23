@@ -98,9 +98,10 @@ const groupTransactionsByDate = (transactions) => {
   return result;
 };
 
-const TransactionItem = ({ transaction, onPress }) => {
-  console.log('Rendering transaction item:', JSON.stringify(transaction));
-  const isSent = transaction.sourceAccountId === 'ACC001'; // Assuming ACC001 is the user's account
+const TransactionItem = ({ transaction, onPress, userAccountIds = [] }) => {
+  console.log('Rendering transaction item with user accounts:', userAccountIds, JSON.stringify(transaction));
+  // Determine if the transaction is sent from one of the user's accounts
+  const isSent = userAccountIds.includes(transaction.sourceAccountId);
   const isPending = transaction.status === 'pending';
   
   const getCategoryIcon = () => {
@@ -300,7 +301,42 @@ const TransactionsScreen = () => {
   };
   
   const handleTransactionPress = (transaction) => {
-    navigation.navigate('TransactionDetail', { transaction });
+    console.log('Transaction pressed:', transaction.transactionId);
+    if (!accounts || accounts.length === 0) {
+      console.error("Cannot handle transaction press: accounts not loaded.");
+      return;
+    }
+
+    const userAccountIds = accounts.map(acc => acc.accountId);
+    const isFromUser = userAccountIds.includes(transaction.sourceAccountId);
+    let accountForContext = null;
+
+    // The account providing context is the one involved in the transaction
+    if (isFromUser) {
+      accountForContext = accounts.find(acc => acc.accountId === transaction.sourceAccountId);
+    } else {
+      // If it wasn't sent from a user account, it must have been received by one
+      accountForContext = accounts.find(acc => acc.accountId === transaction.destinationAccountId);
+    }
+
+    if (accountForContext) {
+      console.log('Navigating with account context:', accountForContext.accountId);
+      navigation.navigate('TransactionDetail', {
+        transaction,
+        accountId: accountForContext.accountId,
+        accountName: accountForContext.accountName,
+        accountBalance: accountForContext.balance,
+        accountCurrency: accountForContext.currency,
+      });
+    } else {
+      // This case should be rare if the transaction belongs to the user
+      console.warn('Could not determine a user account for this transaction. Navigating without full context.', transaction.transactionId);
+      navigation.navigate('TransactionDetail', {
+        transaction,
+        // Pass the primary account ID as a fallback
+        accountId: accounts.length > 0 ? accounts[0].accountId : null,
+      });
+    }
   };
   
   const renderTransactionGroup = ({ item: group }) => {
@@ -314,9 +350,10 @@ const TransactionsScreen = () => {
             console.log('[renderTransactionGroup] Rendering transaction item:', transaction.id);
             return (
               <React.Fragment key={transaction.id}>
-                <TransactionItem 
-                  transaction={transaction} 
-                  onPress={handleTransactionPress} 
+                <TransactionItem
+                  transaction={transaction}
+                  onPress={() => handleTransactionPress(transaction)}
+                  userAccountIds={accounts.map(acc => acc.accountId)}
                 />
                 {index < group.data.length - 1 && <View style={styles.divider} />}
               </React.Fragment>
