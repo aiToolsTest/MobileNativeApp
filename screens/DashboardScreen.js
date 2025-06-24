@@ -31,7 +31,7 @@ const DashboardScreen = ({ navigation }) => {
                 <TouchableOpacity 
                   key={account.id} 
                   style={styles.accountItem}
-                  onPress={() => navigation.navigate('TransactionDetail', { 
+                  onPress={() => navigation.navigate('AccountDetail', { 
                     accountId: account.id, 
                     accountName: account.type,
                     accountBalance: account.balance,

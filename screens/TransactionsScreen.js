@@ -321,7 +321,7 @@ const TransactionsScreen = () => {
 
     if (accountForContext) {
       console.log('Navigating with account context:', accountForContext.accountId);
-      navigation.navigate('TransactionDetail', {
+      navigation.navigate('AccountDetail', {
         transaction,
         accountId: accountForContext.accountId,
         accountName: accountForContext.accountName,
@@ -331,7 +331,7 @@ const TransactionsScreen = () => {
     } else {
       // This case should be rare if the transaction belongs to the user
       console.warn('Could not determine a user account for this transaction. Navigating without full context.', transaction.transactionId);
-      navigation.navigate('TransactionDetail', {
+      navigation.navigate('AccountDetail', {
         transaction,
         // Pass the primary account ID as a fallback
         accountId: accounts.length > 0 ? accounts[0].accountId : null,

@@ -25,7 +25,8 @@ import RegisterScreen from './screens/RegisterScreen';
 import DashboardScreen from './screens/DashboardScreen';
 import TransferScreen from './screens/TransferScreen';
 import TransactionsScreen from './screens/TransactionsScreen';
-import TransactionDetailScreen from './screens/TransactionDetailScreen';
+import AccountDetailScreen from './screens/AccountDetailScreen';
+import TransactionReceiptScreen from './screens/TransactionReceiptScreen';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import TransactionScreen from './screens/TransactionScreen';
@@ -139,9 +140,14 @@ const App = () => {
             options={{ title: 'Transfer Money' }}
           />
           <Stack.Screen 
-            name="TransactionDetail" 
-            component={TransactionDetailScreen} 
-            options={{ title: 'Transaction Details' }}
+            name="AccountDetail" 
+            component={AccountDetailScreen} 
+            options={({ route }) => ({ title: route.params.accountName || 'Account Details' })}
+          />
+          <Stack.Screen 
+            name="TransactionReceipt" 
+            component={TransactionReceiptScreen} 
+            options={{ title: 'Transaction Receipt' }}
           />
           <Stack.Screen 
             name="Settings" 
