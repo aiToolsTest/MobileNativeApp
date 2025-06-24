@@ -177,15 +177,6 @@ const SingleTransactionDetailView = ({ transaction, perspectiveAccountId }) => {
         style={styles.headerGradient}
         start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
       >
-        <View style={styles.header}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ padding: 8 }}>
-            <Icon name="arrow-back" size={24} color={PRIMARY_BLUE} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Details</Text>
-          <TouchableOpacity onPress={handleShare} style={{ padding: 8 }}>
-            <Icon name="share" size={24} color={PRIMARY_BLUE} />
-          </TouchableOpacity>
-        </View>
         <View style={styles.amountContainer}>
           <View style={[styles.amountIcon, { backgroundColor: `${getStatusColor()}20` }]}>
             <Icon name={getCategoryIcon(transaction.category, isSent)} size={28} color={getStatusColor()} />
