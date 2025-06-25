@@ -31,16 +31,16 @@ const DashboardScreen = ({ navigation }) => {
                 <TouchableOpacity 
                   key={account.id} 
                   style={styles.accountItem}
-                  onPress={() => navigation.navigate('TransactionDetail', { 
+                  onPress={() => navigation.navigate('AccountDetail', { 
                     accountId: account.id, 
-                    accountName: account.accountType,
+                    accountName: account.type,
                     accountBalance: account.balance,
                     accountCurrency: account.currency
                   })}
                   activeOpacity={0.7}
                 >
                   <Text style={styles.accountName}>
-                    {account.accountType}
+                    {account.type}
                   </Text>
                   <Text style={styles.accountBalance}>
                     {account.currency} {account.balance.toFixed(2)}
@@ -108,11 +108,16 @@ const styles = StyleSheet.create({
     shadowRadius: 2,
     elevation: 2,
   },
+  accountTypeLabel: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '500',
+  },
   accountName: {
-    fontSize: 18,
+    fontSize: 22,
     fontWeight: '600',
     color: PRIMARY_BLUE,
-    marginBottom: 0,
+    marginBottom: 2,
     marginTop: -35,
   },
   accountBalance: {

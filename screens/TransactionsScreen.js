@@ -98,9 +98,10 @@ const groupTransactionsByDate = (transactions) => {
   return result;
 };
 
-const TransactionItem = ({ transaction, onPress }) => {
-  console.log('Rendering transaction item:', JSON.stringify(transaction));
-  const isSent = transaction.sourceAccountId === 'ACC001'; // Assuming ACC001 is the user's account
+const TransactionItem = ({ transaction, onPress, userAccountIds = [] }) => {
+  console.log('Rendering transaction item with user accounts:', userAccountIds, JSON.stringify(transaction));
+  // Determine if the transaction is sent from one of the user's accounts
+  const isSent = userAccountIds.includes(transaction.sourceAccountId);
   const isPending = transaction.status === 'pending';
   
   const getCategoryIcon = () => {
@@ -300,7 +301,42 @@ const TransactionsScreen = () => {
   };
   
   const handleTransactionPress = (transaction) => {
-    navigation.navigate('TransactionDetail', { transaction });
+    console.log('Transaction pressed:', transaction.transactionId);
+    if (!accounts || accounts.length === 0) {
+      console.error("Cannot handle transaction press: accounts not loaded.");
+      return;
+    }
+
+    const userAccountIds = accounts.map(acc => acc.accountId);
+    const isFromUser = userAccountIds.includes(transaction.sourceAccountId);
+    let accountForContext = null;
+
+    // The account providing context is the one involved in the transaction
+    if (isFromUser) {
+      accountForContext = accounts.find(acc => acc.accountId === transaction.sourceAccountId);
+    } else {
+      // If it wasn't sent from a user account, it must have been received by one
+      accountForContext = accounts.find(acc => acc.accountId === transaction.destinationAccountId);
+    }
+
+    if (accountForContext) {
+      console.log('Navigating with account context:', accountForContext.accountId);
+      navigation.navigate('AccountDetail', {
+        transaction,
+        accountId: accountForContext.accountId,
+        accountName: accountForContext.accountName,
+        accountBalance: accountForContext.balance,
+        accountCurrency: accountForContext.currency,
+      });
+    } else {
+      // This case should be rare if the transaction belongs to the user
+      console.warn('Could not determine a user account for this transaction. Navigating without full context.', transaction.transactionId);
+      navigation.navigate('AccountDetail', {
+        transaction,
+        // Pass the primary account ID as a fallback
+        accountId: accounts.length > 0 ? accounts[0].accountId : null,
+      });
+    }
   };
   
   const renderTransactionGroup = ({ item: group }) => {
@@ -314,9 +350,10 @@ const TransactionsScreen = () => {
             console.log('[renderTransactionGroup] Rendering transaction item:', transaction.id);
             return (
               <React.Fragment key={transaction.id}>
-                <TransactionItem 
-                  transaction={transaction} 
-                  onPress={handleTransactionPress} 
+                <TransactionItem
+                  transaction={transaction}
+                  onPress={() => handleTransactionPress(transaction)}
+                  userAccountIds={accounts.map(acc => acc.accountId)}
                 />
                 {index < group.data.length - 1 && <View style={styles.divider} />}
               </React.Fragment>
@@ -340,7 +377,7 @@ const TransactionsScreen = () => {
         ]}
       >
         <LinearGradient
-          colors={['#FFBC18', '#FFBC18']}
+          colors={[LIGHT_YELLOW, LIGHT_YELLOW]}
           style={styles.headerGradient}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -356,61 +393,59 @@ const TransactionsScreen = () => {
             
             <View style={styles.balanceContainer}>
               <Text style={styles.balanceLabel}>Total Balance</Text>
-              <Text style={styles.balanceAmount}>
-                ${
+              <Text style={styles.balanceAmount}>${
                   accounts && accounts.length > 0
                     ? accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0).toFixed(2)
                     : '0.00'
-                }
-              </Text>
+                }</Text>
               {/* Optionally, you can remove or update the balanceChange line below if not needed */}
               {/* <Text style={styles.balanceChange}>+2.3% this month</Text> */}
             </View>
             
             <View style={styles.filterContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  activeFilter === 'all' && styles.activeFilterButton
+                  activeFilter === 'all' && styles.activeFilterButton,
                 ]}
                 onPress={() => setActiveFilter('all')}
               >
-                <Text 
+                <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === 'all' && styles.activeFilterButtonText
+                    activeFilter === 'all' && styles.activeFilterButtonText,
                   ]}
                 >
                   All
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  activeFilter === 'sent' && styles.activeFilterButton
+                  activeFilter === 'sent' && styles.activeFilterButton,
                 ]}
                 onPress={() => setActiveFilter('sent')}
               >
-                <Text 
+                <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === 'sent' && styles.activeFilterButtonText
+                    activeFilter === 'sent' && styles.activeFilterButtonText,
                   ]}
                 >
                   Sent
                 </Text>
               </TouchableOpacity>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
                   styles.filterButton,
-                  activeFilter === 'received' && styles.activeFilterButton
+                  activeFilter === 'received' && styles.activeFilterButton,
                 ]}
                 onPress={() => setActiveFilter('received')}
               >
-                <Text 
+                <Text
                   style={[
                     styles.filterButtonText,
-                    activeFilter === 'received' && styles.activeFilterButtonText
+                    activeFilter === 'received' && styles.activeFilterButtonText,
                   ]}
                 >
                   Received
@@ -600,36 +635,42 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: PRIMARY_BLUE,
+    fontWeight: '700',
+    color: '#00456E',
+    textAlign: 'center',
   },
   filterButton: {
     padding: 8,
   },
   balanceContainer: {
     alignItems: 'center',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingHorizontal: 20,
     marginBottom: 24,
   },
   balanceLabel: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#00456E',
+    opacity: 0.8,
     marginBottom: 4,
   },
   balanceAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: PRIMARY_BLUE,
+    color: '#00456E',
     marginBottom: 4,
   },
   balanceChange: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: '#00456E',
+    opacity: 0.8,
   },
   filterContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginHorizontal: 20,
-    backgroundColor: LIGHT_YELLOW,
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     padding: 4,
   },
@@ -640,10 +681,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeFilterButton: {
-    backgroundColor: PRIMARY_BLUE,
+    backgroundColor: '#00456E',
   },
   filterButtonText: {
-    color: PRIMARY_BLUE,
+    color: '#00456E',
     fontWeight: '500',
   },
   activeFilterButtonText: {
