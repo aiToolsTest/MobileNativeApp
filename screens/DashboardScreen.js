@@ -109,19 +109,21 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   accountName: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
     color: PRIMARY_BLUE,
+    marginBottom: 0,
+    marginTop: -35,
   },
   accountBalance: {
     fontSize: 16,
     color: '#555',
-    marginTop: 4,
+    marginTop: 5,
   },
   accountId: {
     fontSize: 14,
     color: '#adb5bd',
-    marginTop: 4,
+    marginTop: 5,
   },
   buttonContainer: {
     width: '100%',
